@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/tidwall/resp"
 	"io"
@@ -12,6 +13,7 @@ import (
 
 type MockServer struct {
 	listener net.Listener
+	Mock     map[string]func(resp.Value) (resp.Value, error)
 }
 
 func (s *MockServer) Init(address string) error {
@@ -39,9 +41,12 @@ func (s *MockServer) Init(address string) error {
 func (s *MockServer) handle(conn net.Conn) {
 	for {
 		message := readCommand(conn)
-		fmt.Print(string(message))
+
 		rd := resp.NewReader(bytes.NewBufferString(string(message)))
 		for {
+			var buf bytes.Buffer
+			wr := resp.NewWriter(&buf)
+
 			v, _, err := rd.ReadValue()
 			if err == io.EOF {
 				break
@@ -49,21 +54,23 @@ func (s *MockServer) handle(conn net.Conn) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			fmt.Printf("Read %s\n", v.Type())
 			if v.Type() == resp.Array {
-				for i, v := range v.Array() {
-					fmt.Printf("  #%d %s, value: '%s'\n", i, v.Type(), v)
+				if handler, ok := s.Mock[v.Array()[0].String()]; ok {
+					value, err := handler(v)
+					if err != nil {
+						_ = wr.WriteError(err)
+					} else {
+						_ = wr.WriteValue(value)
+					}
+				} else {
+					_ = wr.WriteError(errors.New("command not found"))
 				}
-			}
-		}
-		var buf bytes.Buffer
-		wr := resp.NewWriter(&buf)
-		_ = wr.WriteString("Ok")
 
-		_, err := conn.Write(buf.Bytes())
-		if err != nil {
-			_ = fmt.Errorf("error in writing to connection %s", err)
-			break
+			} else {
+				_ = wr.WriteError(errors.New("not implemented"))
+				_, _ = conn.Write(buf.Bytes())
+			}
+			_, _ = conn.Write(buf.Bytes())
 		}
 	}
 }
