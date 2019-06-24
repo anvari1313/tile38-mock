@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 )
 
 type MockServer struct {
@@ -55,7 +56,7 @@ func (s *MockServer) handle(conn net.Conn) {
 				log.Fatal(err)
 			}
 			if v.Type() == resp.Array {
-				if handler, ok := s.Mock[v.Array()[0].String()]; ok {
+				if handler, ok := s.Mock[strings.ToUpper(v.Array()[0].String())]; ok {
 					value, err := handler(v)
 					if err != nil {
 						_ = wr.WriteError(err)
