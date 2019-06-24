@@ -1,4 +1,4 @@
-package server
+package tile38_mock
 
 import (
 	"bufio"
