@@ -45,14 +45,24 @@ func (s *MockServer) Init(address string) error {
 	return err
 }
 
-func (s *MockServer) Set(cmd []string, res resp.Value) {
+func (s *MockServer) SetStringResponse(cmd []string, res []string) {
 	var builder strings.Builder
 	for _, c := range cmd {
 		builder.WriteString(strings.ToUpper(c))
 		builder.WriteString(" ")
 	}
 
-	s.cmdResponse[builder.String()] = res
+	var r resp.Value
+	if len(res) == 1 {
+		r = resp.StringValue(res[0])
+	} else {
+		arr := make([]resp.Value, len(res))
+		for i, r := range res {
+			arr[i] = resp.StringValue(r)
+		}
+		r = resp.ArrayValue(arr)
+	}
+	s.cmdResponse[builder.String()] = r
 }
 
 func (s *MockServer) handle(conn net.Conn) {
