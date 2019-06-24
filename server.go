@@ -14,7 +14,7 @@ import (
 
 type MockServer struct {
 	listener net.Listener
-	Mock     map[string]func(resp.Value) (resp.Value, error)
+	Mock     map[string]resp.Value
 }
 
 func (s *MockServer) Init(address string) error {
@@ -62,13 +62,8 @@ func (s *MockServer) handle(conn net.Conn) {
 					builder.WriteString(" ")
 				}
 
-				if handler, ok := s.Mock[strings.ToUpper(builder.String())]; ok {
-					value, err := handler(v)
-					if err != nil {
-						_ = wr.WriteError(err)
-					} else {
-						_ = wr.WriteValue(value)
-					}
+				if r, ok := s.Mock[strings.ToUpper(builder.String())]; ok {
+					_ = wr.WriteValue(r)
 				} else {
 					_ = wr.WriteError(errors.New("command not found"))
 				}
@@ -87,7 +82,7 @@ func readCommand(conn net.Conn) []byte {
 
 	var message []byte
 	for {
-		buf := make([]byte, 10)
+		buf := make([]byte, 1024)
 		n, err := reader.Read(buf)
 		if err != nil {
 			break
