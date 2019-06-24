@@ -56,7 +56,13 @@ func (s *MockServer) handle(conn net.Conn) {
 				log.Fatal(err)
 			}
 			if v.Type() == resp.Array {
-				if handler, ok := s.Mock[strings.ToUpper(v.Array()[0].String())]; ok {
+				var builder strings.Builder
+				for _, v := range v.Array() {
+					builder.WriteString(v.String())
+					builder.WriteString(" ")
+				}
+
+				if handler, ok := s.Mock[strings.ToUpper(builder.String())]; ok {
 					value, err := handler(v)
 					if err != nil {
 						_ = wr.WriteError(err)
