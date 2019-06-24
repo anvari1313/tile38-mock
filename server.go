@@ -13,8 +13,14 @@ import (
 )
 
 type MockServer struct {
-	listener net.Listener
-	Mock     map[string]resp.Value
+	listener    net.Listener
+	cmdResponse map[string]resp.Value
+}
+
+func CreateMockServer() *MockServer {
+	s := MockServer{}
+	s.cmdResponse = make(map[string]resp.Value)
+	return &s
 }
 
 func (s *MockServer) Init(address string) error {
@@ -37,6 +43,16 @@ func (s *MockServer) Init(address string) error {
 	}()
 
 	return err
+}
+
+func (s *MockServer) Set(cmd []string, res resp.Value) {
+	var builder strings.Builder
+	for _, c := range cmd {
+		builder.WriteString(strings.ToUpper(c))
+		builder.WriteString(" ")
+	}
+
+	s.cmdResponse[builder.String()] = res
 }
 
 func (s *MockServer) handle(conn net.Conn) {
@@ -62,7 +78,7 @@ func (s *MockServer) handle(conn net.Conn) {
 					builder.WriteString(" ")
 				}
 
-				if r, ok := s.Mock[strings.ToUpper(builder.String())]; ok {
+				if r, ok := s.cmdResponse[strings.ToUpper(builder.String())]; ok {
 					_ = wr.WriteValue(r)
 				} else {
 					_ = wr.WriteError(errors.New("command not found"))
