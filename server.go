@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
-	"fmt"
 	"github.com/tidwall/resp"
 	"io"
 	"log"
@@ -34,9 +33,8 @@ func (s *MockServer) Init(address string) error {
 
 		for {
 			conn, err := s.listener.Accept()
-			fmt.Println("New connection accepted")
 			if err != nil {
-				log.Fatalf("Ffailed to accpect connection, %s", err)
+				log.Fatalf("failed to accpect connection, %s", err)
 			}
 			go s.handle(conn)
 		}
@@ -67,7 +65,7 @@ func (s *MockServer) SetStringResponse(cmd []string, res []string) {
 
 func (s *MockServer) handle(conn net.Conn) {
 	for {
-		message := readCommand(conn)
+		message := read(conn)
 
 		rd := resp.NewReader(bytes.NewBufferString(string(message)))
 		for {
@@ -103,7 +101,7 @@ func (s *MockServer) handle(conn net.Conn) {
 	}
 }
 
-func readCommand(conn net.Conn) []byte {
+func read(conn net.Conn) []byte {
 	reader := bufio.NewReader(conn)
 
 	var message []byte
